@@ -16,7 +16,7 @@ export default function ParentCatalogScreen() {
   const [list, setList] = useState<SpecialistCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<SpecialistCatalogItem | null>(null);
-
+///dsdsa
   useEffect(() => {
     (async () => {
       try {
