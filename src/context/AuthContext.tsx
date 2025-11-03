@@ -18,7 +18,7 @@ type Ctx = {
   register(email: string, password: string, role: "Specialist" | "Parent", fullName?: string): Promise<void>;
   logout(): Promise<void>;
 };
-
+//ddas
 const AuthContext = createContext<Ctx>({} as any);
 export const useAuth = () => useContext(AuthContext);
 
