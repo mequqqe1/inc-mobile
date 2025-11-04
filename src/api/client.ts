@@ -2,7 +2,7 @@ import axios from "axios";
 import { storage } from "../utils/storage"; // ✅ используем универсальное хранилище
 
 const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_BASE || "http://192.168.1.43:5062",
+  baseURL: process.env.EXPO_PUBLIC_API_BASE || "http://89.207.250.222:5062/",
   timeout: 20000,
 });
 
