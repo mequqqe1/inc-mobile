@@ -24,6 +24,8 @@ import SpecialistProfileScreen from "../screens/specialist/SpecialistProfileScre
 import ParentHomeScreen from "../screens/parent/ParentHomeScreen";
 import ParentCatalogScreen from "../screens/parent/ParentCatalogScreen";
 import ParentBookingsScreen from "../screens/parent/ParentBookingsScreen";
+import ParentStack from "../navigation/ParentStack";
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -86,6 +88,7 @@ function ParentTabs() {
         component={ParentBookingsScreen}
         options={{ title: "Мои записи" }}
       />
+      <Tab.Screen name="ParentHome" component={ParentStack} options={{ title: "Семья" }} />
     </Tab.Navigator>
   );
 }

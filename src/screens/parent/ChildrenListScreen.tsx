@@ -1,0 +1,71 @@
+import React, { useEffect, useState } from "react";
+import { View, Text, FlatList, RefreshControl, TouchableOpacity } from "react-native";
+import { colors } from "../../theme/AppTheme";
+import { Card, PrimaryButton } from "../../components/Ui";
+import { Child, listChildren, deleteChild } from "../../api/parent/children";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+
+export default function ChildrenListScreen() {
+  const [items, setItems] = useState<Child[]>([]);
+  const [loading, setLoading] = useState(true);
+  const nav = useNavigation<any>();
+
+  const load = async () => {
+    setLoading(true);
+    const data = await listChildren();
+    setItems(data);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const onDelete = async (id: string) => {
+    await deleteChild(id);
+    await load();
+  };
+
+  return (
+    <View style={{ flex: 1, padding: 16, gap: 12 }}>
+      <PrimaryButton title="Добавить ребёнка" onPress={() => nav.navigate("ChildForm")} />
+
+      <FlatList
+        data={items}
+        keyExtractor={(x) => x.id}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+        renderItem={({ item }) => (
+          <Card style={{ marginVertical: 6 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>
+                  {item.firstName} {item.lastName || ""}
+                </Text>
+                {!!item.primaryDiagnosis && (
+                  <Text style={{ color: colors.textMuted, marginTop: 4 }}>{item.primaryDiagnosis}</Text>
+                )}
+              </View>
+              <TouchableOpacity onPress={() => nav.navigate("ChildForm", { id: item.id })}>
+                <Ionicons name="create-outline" size={22} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => nav.navigate("ChildNotes", { childId: item.id, name: item.firstName })} style={{ marginLeft: 12 }}>
+                <Ionicons name="chatbubbles-outline" size={22} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => nav.navigate("ChildDocs", { childId: item.id, name: item.firstName })} style={{ marginLeft: 12 }}>
+                <Ionicons name="document-outline" size={22} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => onDelete(item.id)} style={{ marginLeft: 12 }}>
+                <Ionicons name="trash-outline" size={22} color={"#D33"} />
+              </TouchableOpacity>
+              
+            </View>
+          </Card>
+        )}
+        ListEmptyComponent={
+          !loading ? <Text style={{ color: colors.textMuted, textAlign: "center", marginTop: 24 }}>
+            Пока пусто — добавьте ребёнка
+          </Text> : null
+        }
+      />
+    </View>
+  );
+}
