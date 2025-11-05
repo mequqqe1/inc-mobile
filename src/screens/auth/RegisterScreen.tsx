@@ -29,8 +29,19 @@ export default function RegisterScreen() {
       <Card>
         <Text style={{ color: colors.textMuted, marginBottom: 6 }}>Роль</Text>
         <View style={{ flexDirection:"row", gap: 8, marginBottom: 12 }}>
-          <Chip text="Родитель"  active={role==="Parent"}     />
-          <Chip text="Специалист" active={role==="Specialist"} />
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+            <Chip
+              text="Родитель"
+              active={role === "Parent"}
+              onPress={() => setRole("Parent")}
+            />
+            <Chip
+              text="Специалист"
+              active={role === "Specialist"}
+              onPress={() => setRole("Specialist")}
+            />
+          </View>
+
         </View>
 
         <Text style={{ color: colors.textMuted, marginBottom: 6 }}>ФИО (необязательно)</Text>
