@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import {
   View, Text, TextInput, FlatList, TouchableOpacity, Modal,
-  ScrollView, ActivityIndicator, StyleSheet
+  ScrollView, ActivityIndicator, StyleSheet, Alert
 } from "react-native";
 import {
   getSpecialists, SpecialistCatalogItem,
   getSpecialistProfile, getAvailability
-} from "../../api/specialist"
+} from "../../api/specialist";
 import { createBooking } from "../../api/bookings";
+import { listChildren, Child } from "../../api/parent/children";
 
 const PRIMARY = "#61A43B";
 
@@ -16,7 +17,7 @@ export default function ParentCatalogScreen() {
   const [list, setList] = useState<SpecialistCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<SpecialistCatalogItem | null>(null);
-///dsdsa
+
   useEffect(() => {
     (async () => {
       try {
@@ -92,15 +93,21 @@ function SpecialistModal({
   const [profile, setProfile] = useState<any>(null);
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [bookingBusy, setBookingBusy] = useState<string | null>(null);
+
+  // модалка бронирования (child + message)
+  const [bookingModalVisible, setBookingModalVisible] = useState(false);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const d = await getSpecialistProfile(specialist.userId);
-      setProfile(d);
-      setLoading(false);
+      try {
+        const prof = await getSpecialistProfile(specialist.userId);
+        setProfile(prof);
+      } finally {
+        setLoading(false);
+      }
     })();
-  }, []);
+  }, [specialist.userId]);
 
   const loadSlots = async () => {
     const fromUtc = new Date().toISOString();
@@ -109,17 +116,14 @@ function SpecialistModal({
     setSlots(data);
   };
 
-  const doBook = async (slotId: string) => {
-    try {
-      setBookingBusy(slotId);
-      await createBooking(slotId);
-      alert("Заявка отправлена! Ожидайте подтверждения.");
-      onClose();
-    } catch (e: any) {
-      alert(e?.response?.data?.error ?? "Не удалось создать бронь");
-    } finally {
-      setBookingBusy(null);
-    }
+  const openBookingModal = (slotId: string) => {
+    setSelectedSlotId(slotId);
+    setBookingModalVisible(true);
+  };
+
+  const closeBookingModal = () => {
+    setBookingModalVisible(false);
+    setSelectedSlotId(null);
   };
 
   return (
@@ -154,7 +158,7 @@ function SpecialistModal({
               </>
             )}
 
-            <TouchableOpacity onPress={loadSlots} style={[s.button, { marginTop: 12 }]}>
+            <TouchableOpacity onPress={loadSlots} style={[s.button, { marginTop: 16 }]}>
               <Text style={s.buttonText}>Показать свободные слоты</Text>
             </TouchableOpacity>
 
@@ -168,8 +172,8 @@ function SpecialistModal({
                       {"  —  "}
                       {new Date(sl.endsAtUtc).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}
                     </Text>
-                    <TouchableOpacity onPress={() => doBook(sl.id)} style={s.slotBtn} disabled={bookingBusy === sl.id}>
-                      {bookingBusy === sl.id ? <ActivityIndicator color="#fff" /> : <Text style={s.slotBtnTxt}>Записаться</Text>}
+                    <TouchableOpacity onPress={() => openBookingModal(sl.id)} style={s.slotBtn}>
+                      <Text style={s.slotBtnTxt}>Записаться</Text>
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -177,6 +181,137 @@ function SpecialistModal({
             )}
           </ScrollView>
         )}
+
+        {/* Модалка бронирования: выбор ребёнка + сообщение */}
+        {bookingModalVisible && selectedSlotId && (
+          <BookingModal
+            visible={bookingModalVisible}
+            slotId={selectedSlotId}
+            onClose={closeBookingModal}
+            onSuccess={() => {
+              Alert.alert("Успешно", "Заявка отправлена! Ожидайте подтверждения.");
+              closeBookingModal();
+              onClose(); // при желании можно закрывать и профиль
+            }}
+          />
+        )}
+      </View>
+    </Modal>
+  );
+}
+
+/** Отдельная модалка оформления брони */
+function BookingModal({
+  visible, slotId, onClose, onSuccess
+}: {
+  visible: boolean;
+  slotId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [children, setChildren] = useState<Child[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const kids = await listChildren();
+        setChildren(kids);
+        if (kids.length === 1) setSelectedChildId(kids[0].id);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [visible]);
+
+  const submit = async () => {
+    try {
+      if (!selectedChildId) {
+        Alert.alert("Выберите ребёнка", "Пожалуйста, выберите ребёнка перед записью.");
+        return;
+      }
+      setBusy(true);
+      await createBooking(slotId, selectedChildId, message.trim() || undefined);
+      onSuccess();
+    } catch (e: any) {
+      Alert.alert("Ошибка", e?.response?.data?.error ?? "Не удалось создать бронь");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={s.bookingBackdrop}>
+        <View style={s.bookingCard}>
+          <View style={s.bookingHeader}>
+            <Text style={s.bookingTitle}>Оформление записи</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={{ color: PRIMARY, fontWeight:"700" }}>Закрыть</Text>
+            </TouchableOpacity>
+          </View>
+
+          {loading ? (
+            <ActivityIndicator color={PRIMARY} style={{ marginTop: 16, marginBottom: 16 }} />
+          ) : (
+            <ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
+              <Text style={s.sectionTitle}>Ребёнок</Text>
+              {children.length > 0 ? (
+                children.map((c) => {
+                  const label = c.lastName ? `${c.firstName} ${c.lastName}` : c.firstName;
+                  const checked = selectedChildId === c.id;
+                  return (
+                    <TouchableOpacity
+                      key={c.id}
+                      onPress={() => setSelectedChildId(c.id)}
+                      style={{ flexDirection:"row", alignItems:"center", paddingVertical:8 }}
+                    >
+                      <View style={{
+                        width:18, height:18, borderRadius:9, borderWidth:2,
+                        borderColor: checked ? PRIMARY : "#C8D4CE",
+                        alignItems:"center", justifyContent:"center", marginRight:8
+                      }}>
+                        {checked ? <View style={{ width:10, height:10, borderRadius:5, backgroundColor:PRIMARY }} /> : null}
+                      </View>
+                      <Text style={{ color:"#2B2F2C" }}>{label}</Text>
+                    </TouchableOpacity>
+                  );
+                })
+              ) : (
+                <Text style={{ color:"#7A8A83", marginTop:6 }}>
+                  У вас нет добавленных детей. Добавьте ребёнка в профиле, чтобы записаться.
+                </Text>
+              )}
+
+              <Text style={[s.sectionTitle, { marginTop: 12 }]}>Сообщение специалисту</Text>
+              <TextInput
+                style={s.messageInput}
+                value={message}
+                onChangeText={setMessage}
+                placeholder="Напишите пожелания, уточнения, особенности ребёнка…"
+                placeholderTextColor="#93A29B"
+                multiline
+              />
+
+              <TouchableOpacity
+                onPress={submit}
+                style={[s.button, { marginTop: 16, opacity: busy ? 0.7 : 1 }]}
+                disabled={busy || children.length === 0}
+              >
+                {busy ? <ActivityIndicator color="#fff" /> : <Text style={s.buttonText}>Подтвердить запись</Text>}
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={onClose} style={[s.buttonGhost, { marginTop: 8 }]}>
+                <Text style={s.buttonGhostText}>Отмена</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          )}
+        </View>
       </View>
     </Modal>
   );
@@ -223,4 +358,25 @@ const s = StyleSheet.create({
   slotText: { color:"#2B2F2C" },
   slotBtn: { backgroundColor: PRIMARY, borderRadius:10, paddingVertical:8, paddingHorizontal:12 },
   slotBtnTxt: { color:"#fff", fontWeight:"700" },
+
+  // booking modal styles
+  bookingBackdrop: {
+    flex:1, backgroundColor:"rgba(0,0,0,0.35)", justifyContent:"flex-end"
+  },
+  bookingCard: {
+    backgroundColor:"#fff", borderTopLeftRadius:16, borderTopRightRadius:16,
+    padding:16, maxHeight:"85%"
+  },
+  bookingHeader: {
+    flexDirection:"row", alignItems:"center", justifyContent:"space-between", marginBottom:8
+  },
+  bookingTitle: { fontWeight:"900", fontSize:18, color:"#2B2F2C" },
+  messageInput: {
+    marginTop:8, minHeight:90, borderRadius:12, borderWidth:1, borderColor:"#E1E7DF",
+    padding:10, textAlignVertical:"top", backgroundColor:"#fff", color:"#2B2F2C"
+  },
+  buttonGhost: {
+    borderRadius:12, alignItems:"center", paddingVertical:12, borderWidth:1, borderColor:"#E1E7DF", backgroundColor:"#fff"
+  },
+  buttonGhostText: { color:"#2B2F2C", fontWeight:"700" },
 });
