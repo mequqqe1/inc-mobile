@@ -167,7 +167,6 @@ export default function SpecialistProfileScreen() {
             <Image source={require("../../../assets/icon.png")} style={{ width:30, height:30, opacity:0.85 }} />
           </View>
           <View style={{ flex:1 }}>
-            <Text style={{ color:"#fff", fontWeight:"800", fontSize:18 }}>{profile?.fullName || profile?.email || "Ваш профиль"}</Text>
             <View style={{ marginTop: 6, flexDirection:"row", alignItems:"center", gap: 8 }}>
               {statusPill()}
               <Text style={{ color:"#E8F5E9", fontSize:12 }}>Заполнено: {progress}%</Text>
