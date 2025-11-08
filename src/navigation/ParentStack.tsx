@@ -5,6 +5,8 @@ import ChildFormScreen from "../screens/parent/ChildFormScreen";
 import ChildNotesScreen from "../screens/parent/ChildNotesScreen";
 import ChildDocumentsScreen from "../screens/parent/ChildDocumentsScreen";
 import CaregiversScreen from "../screens/parent/CaregiversScreen";
+import TrackerCalendarScreen from "../screens/parent/TrackerCalendarScreen";
+import TrackerDayScreen from "../screens/parent/TrackerDayScreen";
 
 const Stack = createNativeStackNavigator();
 

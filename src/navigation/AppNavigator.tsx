@@ -20,11 +20,14 @@ import DiplomasScreen from "../screens/specialist/DiplomasScreen";
 import BookingsScreen from "../screens/specialist/BookingsScreen";
 import SpecialistProfileScreen from "../screens/specialist/SpecialistProfileScreen";
 
+
 // ====== PARENT ======
 import ParentHomeScreen from "../screens/parent/ParentHomeScreen";
 import ParentCatalogScreen from "../screens/parent/ParentCatalogScreen";
 import ParentBookingsScreen from "../screens/parent/ParentBookingsScreen";
 import ParentStack from "../navigation/ParentStack";
+import ParentTrackerStack from "../navigation/ParentTrackerStack";
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -71,13 +74,22 @@ function ParentTabs() {
         tabBarStyle: { backgroundColor: "#fff", borderTopColor: "#EAEFE8" },
         tabBarIcon: ({ color, size }) => {
           const map: Record<string, any> = {
+            ParentTracker: "pulse",          // ⬅️ иконка трекера
             ParentCatalog: "leaf",
             ParentBookings: "calendar",
+            ParentHome: "people",            // для «Семьи»
           };
           return <Ionicons name={map[route.name] || "ellipse"} color={color} size={size} />;
         },
       })}
     >
+      {/* Трекер как главная вкладка */}
+      <Tab.Screen
+        name="ParentTracker"
+        component={ParentTrackerStack}
+        options={{ title: "Трекер" }}
+      />
+
       <Tab.Screen
         name="ParentCatalog"
         component={ParentCatalogScreen}
@@ -88,7 +100,12 @@ function ParentTabs() {
         component={ParentBookingsScreen}
         options={{ title: "Мои записи" }}
       />
-      <Tab.Screen name="ParentHome" component={ParentStack} options={{ title: "Семья" }} />
+      {/* «Семья» остаётся со своим старым ParentStack */}
+      <Tab.Screen
+        name="ParentHome"
+        component={ParentStack}
+        options={{ title: "Семья" }}
+      />
     </Tab.Navigator>
   );
 }
