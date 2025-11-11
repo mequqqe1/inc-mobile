@@ -10,8 +10,11 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from "react-native";
-import { getSpecialists, SpecialistCatalogItem, getSpecialistProfile, getAvailability } from "../../api/specialist"
+import { SafeAreaView } from "react-native-safe-area-context";
+import { getSpecialists, SpecialistCatalogItem, getSpecialistProfile, getAvailability } from "../../api/specialist";
 import { createBooking, myBookings, cancelBooking, Booking } from "../../api/bookings";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Pressable } from "react-native";
 
 const PRIMARY = "#61A43B";
 
@@ -19,7 +22,7 @@ export default function ParentHomeScreen() {
   const [tab, setTab] = useState<"specialists" | "bookings">("specialists");
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <View style={styles.tabs}>
         <TouchableOpacity onPress={() => setTab("specialists")} style={[styles.tab, tab === "specialists" && styles.activeTab]}>
           <Text style={[styles.tabText, tab === "specialists" && styles.activeTabText]}>Специалисты</Text>
@@ -30,7 +33,7 @@ export default function ParentHomeScreen() {
       </View>
 
       {tab === "specialists" ? <SpecialistsTab /> : <BookingsTab />}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -80,6 +83,7 @@ function SpecialistModal({ specialist, onClose }: { specialist: SpecialistCatalo
   const [showBooking, setShowBooking] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     (async () => {
@@ -87,7 +91,7 @@ function SpecialistModal({ specialist, onClose }: { specialist: SpecialistCatalo
       setDetails(data);
       setLoading(false);
     })();
-  }, []);
+  }, [specialist.userId]);
 
   const loadSlots = async () => {
     const fromUtc = new Date().toISOString();
@@ -99,37 +103,72 @@ function SpecialistModal({ specialist, onClose }: { specialist: SpecialistCatalo
   if (loading) return null;
 
   return (
-    <Modal visible animationType="slide">
-      <View style={{ flex: 1, padding: 20 }}>
-        <TouchableOpacity onPress={onClose}><Text style={{ color: PRIMARY, fontWeight: "600" }}>← Назад</Text></TouchableOpacity>
-        <ScrollView>
-          <Text style={styles.nameLarge}>{details.fullName}</Text>
-          <Text style={styles.city}>{details.city}</Text>
-          <Text style={styles.about}>{details.about}</Text>
-          <Text style={styles.sectionTitle}>Специализации:</Text>
-          <Text>{details.specializations.join(", ")}</Text>
-          <Text style={styles.sectionTitle}>Навыки:</Text>
-          <Text>{details.skills.join(", ")}</Text>
+   <Modal visible animationType="slide" /* presentationStyle="fullScreen" */>
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }} edges={["top", "bottom"]}>
+        <View style={{ flex: 1 }}>
+          {/* Плавающая кнопка назад поверх всего */}
+          <Pressable
+            onPress={onClose}
+            style={{
+              position: "absolute",
+              top: insets.top + 8,
+              left: 12,
+              zIndex: 10,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 10,
+              backgroundColor: "rgba(255,255,255,0.9)",
+            }}
+            hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
+            accessibilityRole="button"
+            accessibilityLabel="Назад"
+          >
+            <Text style={{ color: PRIMARY, fontWeight: "700" }}>← Назад</Text>
+          </Pressable>
 
-          <TouchableOpacity onPress={loadSlots} style={styles.button}>
-            <Text style={styles.buttonText}>Показать свободные слоты</Text>
-          </TouchableOpacity>
+          {/* Контент уходит под кнопку, чтобы не перекрывать её */}
+          <ScrollView
+            contentInsetAdjustmentBehavior="always"
+            contentContainerStyle={{ paddingTop: insets.top + 52, paddingHorizontal: 20, paddingBottom: 20 }}
+            // чтобы верхние элементы не перехватывали тач по кнопке
+            style={{ flex: 1 }}
+          >
+            <Text style={styles.nameLarge}>{details.fullName}</Text>
+            <Text style={styles.city}>{details.city}</Text>
+            <Text style={styles.about}>{details.about}</Text>
 
-          {slots.map((s) => (
-            <TouchableOpacity key={s.id} style={styles.slot} onPress={() => { setSelectedSlot(s); setShowBooking(true); }}>
-              <Text>{new Date(s.startsAtUtc).toLocaleString()} - {new Date(s.endsAtUtc).toLocaleTimeString()}</Text>
+            <Text style={styles.sectionTitle}>Специализации:</Text>
+            <Text>{details.specializations?.join(", ")}</Text>
+
+            <Text style={styles.sectionTitle}>Навыки:</Text>
+            <Text>{details.skills?.join(", ")}</Text>
+
+            <TouchableOpacity onPress={loadSlots} style={styles.button}>
+              <Text style={styles.buttonText}>Показать свободные слоты</Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
 
-        {showBooking && (
-          <BookingModal
-            slot={selectedSlot}
-            specialistId={specialist.userId}
-            onClose={() => setShowBooking(false)}
-          />
-        )}
-      </View>
+            {slots.map((s) => (
+              <TouchableOpacity
+                key={s.id}
+                style={styles.slot}
+                onPress={() => { setSelectedSlot(s); setShowBooking(true); }}
+              >
+                <Text>
+                  {new Date(s.startsAtUtc).toLocaleString()} - {new Date(s.endsAtUtc).toLocaleTimeString()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {showBooking && (
+            <BookingModal
+              slot={selectedSlot}
+              specialistId={specialist.userId}
+              onClose={() => setShowBooking(false)}
+            />
+          )}
+        </View>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -193,14 +232,14 @@ function BookingsTab() {
   if (loading) return <ActivityIndicator style={{ marginTop: 40 }} color={PRIMARY} />;
 
   return (
-    <ScrollView style={{ padding: 16 }}>
+    <ScrollView style={{ padding: 16 }} contentInsetAdjustmentBehavior="always">
       {list.length === 0 && <Text style={{ textAlign: "center", color: "gray" }}>Нет записей</Text>}
       {list.map((b) => (
         <View key={b.id} style={styles.card}>
           <Text style={styles.name}>Запись</Text>
           <Text>{new Date(b.startsAtUtc).toLocaleString()}</Text>
           <Text style={{ color: "gray" }}>Статус: {BookingStatusLabel[b.status]}</Text>
-          {b.status === 0 || b.status === 1 ? (
+          {(b.status === 0 || b.status === 1) ? (
             <TouchableOpacity onPress={() => cancelBooking(b.id)} style={[styles.button, { marginTop: 10 }]}>
               <Text style={styles.buttonText}>Отменить</Text>
             </TouchableOpacity>
@@ -211,7 +250,7 @@ function BookingsTab() {
   );
 }
 
-const BookingStatusLabel = {
+const BookingStatusLabel: Record<number, string> = {
   0: "Ожидает подтверждения",
   1: "Подтверждено",
   2: "Отклонено",

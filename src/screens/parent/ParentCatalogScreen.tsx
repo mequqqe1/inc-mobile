@@ -22,6 +22,7 @@ import {
 import { getReviews, addReview } from "../../api/reviews"; 
 import { createBooking } from "../../api/bookings";
 import { listChildren, Child } from "../../api/parent/children";
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
  * Что добавлено:
@@ -61,6 +62,8 @@ export default function ParentCatalogScreen() {
   const [city, setCity] = useState<string | null>(null);
   const [sort, setSort] = useState<"priceAsc" | "priceDesc" | "name" | "rating">("rating");
   const [sortVisible, setSortVisible] = useState(false);
+  const insets = useSafeAreaInsets();
+
 
   const fetchList = useCallback(async () => {
     setLoading(true);
@@ -108,11 +111,13 @@ export default function ParentCatalogScreen() {
   const resetFilters = () => { setQ(""); setCity(null); setSort("rating"); };
 
   return (
-    <View style={s.container}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: BG }} edges={["top", "left", "right"]}>
       {/* Header */}
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: (insets.top || 0) + 3 }]}>
         <Text style={s.headerTitle}>Специалисты</Text>
-        <TouchableOpacity onPress={() => setSortVisible(true)} accessibilityRole="button"><Text style={s.sortBtn}>Сортировка ▾</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setSortVisible(true)} accessibilityRole="button">
+          <Text style={s.sortBtn}>Сортировка ▾</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Search */}
@@ -199,9 +204,9 @@ export default function ParentCatalogScreen() {
       {selected && (
         <SpecialistModal specialist={selected} onClose={() => setSelected(null)} />
       )}
-    </View>
+    </SafeAreaView>
   );
-}
+};
 
 function Avatar({ name }: { name?: string | null }) {
   const letter = (name || "?").trim().slice(0, 1).toUpperCase();
@@ -315,7 +320,9 @@ function SpecialistModal({ specialist, onClose }: { specialist: SpecialistCatalo
   const closeBookingModal = () => { setBookingModalVisible(false); setSelectedSlotId(null); };
 
   return (
-    <Modal visible animationType="slide">
+    <Modal visible animationType="slide" presentationStyle="fullScreen">
+      <SafeAreaProvider>
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }} edges={["top", "left", "right"]}>
       <View style={{ flex: 1, backgroundColor: "#fff" }}>
         <View style={s.modalHeader}>
           <TouchableOpacity onPress={onClose}><Text style={{ color: PRIMARY, fontWeight: "700" }}>← Назад</Text></TouchableOpacity>
@@ -440,9 +447,12 @@ function SpecialistModal({ specialist, onClose }: { specialist: SpecialistCatalo
           />
         )}
       </View>
+        </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 }
+
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -609,7 +619,7 @@ function BookingModal({ visible, slotId, onClose, onSuccess }: { visible: boolea
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
-  header: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 6, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  header: { paddingHorizontal: 12,paddingBottom: 6, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   headerTitle: { fontSize: 22, fontWeight: "900", color: TEXT },
   sortBtn: { color: PRIMARY, fontWeight: "700" },
 
@@ -644,7 +654,16 @@ const s = StyleSheet.create({
   perHour: { color: "#4D7A36", fontSize: 12 },
   chevron: { fontSize: 28, color: "#C4D3CB", marginLeft: 4 },
 
-  modalHeader: { height: 54, borderBottomWidth: 1, borderBottomColor: "#EAEFE8", paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+modalHeader: {
+  minHeight: 54,        // останется, но SafeAreaView добавит «реальный» отступ сверху на iOS
+  paddingBottom: 8,
+  borderBottomWidth: 1,
+  borderBottomColor: "#EAEFE8",
+  paddingHorizontal: 12,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+},
   modalTitle: { fontWeight: "800", color: TEXT },
   nameBig: { fontWeight: "900", fontSize: 20, color: TEXT },
   aboutBig: { color: "#46534E", marginTop: 10 },
