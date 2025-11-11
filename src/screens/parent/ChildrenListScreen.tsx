@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, RefreshControl, TouchableOpacity } from "react-native";
+import { View, Text, FlatList, RefreshControl, TouchableOpacity, Alert } from "react-native";
 import { colors } from "../../theme/AppTheme";
 import { Card, PrimaryButton } from "../../components/Ui";
 import { Child, listChildren, deleteChild } from "../../api/parent/children";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "../../context/AuthContext";
 
 export default function ChildrenListScreen() {
   const [items, setItems] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
   const nav = useNavigation<any>();
+
+  const { logout } = useAuth();
 
   const load = async () => {
     setLoading(true);
@@ -21,12 +24,23 @@ export default function ChildrenListScreen() {
   useEffect(() => { load(); }, []);
 
   const onDelete = async (id: string) => {
-    await deleteChild(id);
-    await load();
+    Alert.alert("Удалить", "Вы уверены?", [
+      { text: "Отмена", style: "cancel" },
+      { text: "Удалить", style: "destructive", onPress: async () => {
+          await deleteChild(id);
+          await load();
+        }
+      },
+    ]);
   };
+
+  const sexMap: Record<number, string> = { 1: "Мальчик", 2: "Девочка" };
+  const supportMap: Record<number, string> = { 1: "Легкий", 2: "Средний", 3: "Высокий" };
 
   return (
     <View style={{ flex: 1, padding: 16, gap: 12 }}>
+      <PrimaryButton title="logout" onPress={async () => {logout()}} />
+
       <PrimaryButton title="Добавить ребёнка" onPress={() => nav.navigate("ChildForm")} />
 
       <FlatList
@@ -41,7 +55,41 @@ export default function ChildrenListScreen() {
                   {item.firstName} {item.lastName || ""}
                 </Text>
                 {!!item.primaryDiagnosis && (
-                  <Text style={{ color: colors.textMuted, marginTop: 4 }}>{item.primaryDiagnosis}</Text>
+                  <Text style={{ color: colors.textMuted, marginTop: 4 }} numberOfLines={2} ellipsizeMode="tail">{item.primaryDiagnosis}</Text>
+                )}
+                {!!item.birthDate && (
+                  <Text style={{ color: colors.textMuted, marginTop: 4 }} numberOfLines={2} ellipsizeMode="tail">{item.birthDate}</Text>
+                )}
+                {item.sex !== undefined && (
+                  <Text style={{ color: colors.textMuted, marginTop: 4, flexShrink: 1, flexWrap: "wrap" }}>
+                    Пол: {sexMap[item.sex] || "Неизв."}
+                  </Text>
+                )}
+                {item.supportLevel !== undefined && (
+                  <Text style={{ color: colors.textMuted, marginTop: 4, flexShrink: 1, flexWrap: "wrap" }}>
+                    Уровень поддержки: {supportMap[item.supportLevel] || "Неизв."}
+                  </Text>
+                )}
+                {!!item.communicationMethod && (
+                  <Text style={{ color: colors.textMuted, marginTop: 4 }} numberOfLines={2} ellipsizeMode="tail">{item.communicationMethod}</Text>
+                )}
+                {!!item.allergies && (
+                  <Text style={{ color: colors.textMuted, marginTop: 4 }} numberOfLines={2} ellipsizeMode="tail">{item.allergies}</Text>
+                )}
+                {!!item.medications && (
+                  <Text style={{ color: colors.textMuted, marginTop: 4 }} numberOfLines={2} ellipsizeMode="tail">{item.medications}</Text>
+                )}
+                {!!item.triggers && (
+                  <Text style={{ color: colors.textMuted, marginTop: 4 }} numberOfLines={2} ellipsizeMode="tail">{item.triggers}</Text>
+                )}
+                {!!item.calmingStrategies && (
+                  <Text style={{ color: colors.textMuted, marginTop: 4 }} numberOfLines={2} ellipsizeMode="tail">{item.calmingStrategies}</Text>
+                )}
+                {!!item.schoolOrCenter && (
+                  <Text style={{ color: colors.textMuted, marginTop: 4 }} numberOfLines={2} ellipsizeMode="tail">{item.schoolOrCenter}</Text>
+                )}
+                {!!item.currentGoals && (
+                  <Text style={{ color: colors.textMuted, marginTop: 4 }} numberOfLines={2} ellipsizeMode="tail">{item.currentGoals}</Text>
                 )}
               </View>
               <TouchableOpacity onPress={() => nav.navigate("ChildForm", { id: item.id })}>
