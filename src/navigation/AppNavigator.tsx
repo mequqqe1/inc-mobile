@@ -27,6 +27,8 @@ import ParentCatalogScreen from "../screens/parent/ParentCatalogScreen";
 import ParentBookingsScreen from "../screens/parent/ParentBookingsScreen";
 import ParentStack from "../navigation/ParentStack";
 import ParentTrackerStack from "../navigation/ParentTrackerStack";
+import ZeynAIStack from "../navigation/ZeynAIStack";
+
 
 
 const Stack = createNativeStackNavigator();
@@ -106,6 +108,7 @@ function ParentTabs() {
         component={ParentStack}
         options={{ title: "Семья" }}
       />
+      <Tab.Screen name="ZeynAI" component={ZeynAIStack} options={{ title: "ZeynAI" }} />
     </Tab.Navigator>
   );
 }
